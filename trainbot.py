@@ -7,6 +7,22 @@ from collections import namedtuple
 # file name for the database
 STATS_FILE = 'stats.csv'
 
+choochooUsage = '!choochoo win [winner] lose [loser1 loser2 etc]'
+addplayerUsage = '!addplayer [player]'
+removeplayerUsage = '!removeplayer [player]'
+setplayerUsage = '!setplayer name [name] wins [win_count] losses [loss_count]'
+statsUsage = '!stats <winrate>'
+helpMsg = ('```diff\n'
+           'These are the available commands. Arguments displayed in [square brackets]\n'
+           'are required. Arguments displayed in <angle brackets> are optional.\n'
+           '----------------------------------------------------------------------------\n'
+           + choochooUsage + '\n'
+           + addplayerUsage + '\n'
+           + removeplayerUsage + '\n'
+           + setplayerUsage + '\n'
+           + statsUsage + '\n'
+           '```')
+
 client = discord.Client()
 
 # function to search a list of lists for a name
@@ -389,6 +405,10 @@ async def on_message(message):
             await dumpStats(message.channel, sortType=sortType)
         else:
             await dumpStats(message.channel)
+
+    elif message.content.startswith('!trainshelp'):
+        # send the help message
+        await client.send_message(message.channel, helpMsg)
 
 
 client.run('bot token')
