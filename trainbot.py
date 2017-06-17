@@ -11,7 +11,7 @@ choochooUsage = '!choochoo win [winner] lose [loser1 loser2 etc]'
 addplayerUsage = '!addplayer [player]'
 removeplayerUsage = '!removeplayer [player]'
 setplayerUsage = '!setplayer name [name] wins [win_count] losses [loss_count]'
-statsUsage = '!stats <winrate>'
+statsUsage = '!stats <winrate | wins | losses>'
 helpMsg = ('```diff\n'
            'These are the available commands. Arguments displayed in [square brackets]\n'
            'are required. Arguments displayed in <angle brackets> are optional.\n'
@@ -226,6 +226,14 @@ async def dumpStats(msgChannel, sortType='NAME', player='ALL'):
             await client.send_message(msgChannel, 'Error while sorting list. Make '
                                                   'sure all players have at least '
                                                   'one win or loss.')
+    elif sortType == 'WINS':
+        # sort by number of wins and reverse so max is first
+        rows.sort(key=lambda wins: int(wins[1]))
+        rows.reverse()
+    elif sortType == 'LOSSES':
+        # sort by number of losses and reverse so max is first
+        rows.sort(key=lambda losses: int(losses[2]))
+        rows.reverse()
 
     if player == 'ALL':
         # get max player length
