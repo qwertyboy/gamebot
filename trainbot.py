@@ -5,7 +5,13 @@ import csv
 from collections import namedtuple
 
 # file name for the database
+CMD_PREFIX = '!'
 STATS_FILE = 'stats.csv'
+
+              # Reichspräsident     # Reichsprotektor
+CMD_ROLES = ['319225958492012545', '319626374241320973']
+               # Members
+STAT_ROLES = ['131586834642894849']
 
 choochooUsage = '!choochoo win [winner] lose [loser1 loser2 etc]'
 addplayerUsage = '!addplayer [player]'
@@ -24,6 +30,14 @@ helpMsg = ('```diff\n'
            '```')
 
 client = discord.Client()
+
+# function to check permissions for a command
+def checkPermission(user, roleList):
+    # check command permissions
+    for role in user.roles:
+        if role.id in roleList:
+            return 1
+    return 0
 
 # function to search a list of lists for a name
 def getIndex(name, searchList):
@@ -219,8 +233,7 @@ async def dumpStats(msgChannel, sortType='NAME', player='ALL'):
     if sortType == 'WINRATE':
         # sort data by win rate
         try:
-            rows.sort(key=lambda rate: int(rate[1]) / (int(rate[1]) + int(rate[2])))
-            rows.reverse()
+            rows.sort(key=lambda rate: int(rate[1]) / (int(rate[1]) + int(rate[2])), reverse=True)
         except ZeroDivisionError:
             print('[ERROR] Tried to divide by zero because of blank player data')
             await client.send_message(msgChannel, 'Error while sorting list. Make '
@@ -228,12 +241,10 @@ async def dumpStats(msgChannel, sortType='NAME', player='ALL'):
                                                   'one win or loss.')
     elif sortType == 'WINS':
         # sort by number of wins and reverse so max is first
-        rows.sort(key=lambda wins: int(wins[1]))
-        rows.reverse()
+        rows.sort(key=lambda wins: int(wins[1]), reverse=True)
     elif sortType == 'LOSSES':
         # sort by number of losses and reverse so max is first
-        rows.sort(key=lambda losses: int(losses[2]))
-        rows.reverse()
+        rows.sort(key=lambda losses: int(losses[2]), reverse=True)
 
     if player == 'ALL':
         # get max player length
@@ -272,152 +283,186 @@ async def dumpStats(msgChannel, sortType='NAME', player='ALL'):
 
 @client.event
 async def on_ready():
-    print('Logged in as')
-    print(client.user.name)
-    print(client.user.id)
-    print('------')
+    print('Logged in as \"%s\" with ID %s' % (client.user.name, client.user.id))
+    print('Connected servers:')
+    for server in client.servers:
+        print('\t%s (%s)' % (server.name, server.id))
+
+        #print('\tRoles:')
+        #for role in server.role_hierarchy:
+        #    print('\t\t%s (%s)' % (role.name, role.id))
+
+        #print('\tMembers:')
+        #for member in server.members:
+        #    print('\t\t%s (%s)' % (member.name, member.id))
+    print('---------------------------------------------')
 
 @client.event
 async def on_message(message):
-    # main command for adding win and lose information
-    # syntax: !choochoo win [winner] lose [loser1 loser2]
-    if message.content.startswith('!choochoo'):
-        # get arguments
+    # check if this is a command for this bot
+    if message.content.startswith(CMD_PREFIX):
+        # get the arguments in the message
         args = message.content.split()
+        # get the command after the command prefix
+        command = args[0][1:]
+        # remove the command from the args
+        del(args[0])
+        print('\n[INFO] Command: %s' % command)
+        print('[INFO] Arguments: %s' % args)
 
-        # check if the number of arguments is valid
-        if len(args) < 5:
-            print('[ERROR] Invalid argument list')
-            await client.send_message(message.channel, 'Error: Invalid number of arguments')
-            winnerFound = 0
-            losersFound = 0
-        else:
-            # convert all arguments to UPPERCASE
-            for i in range(0, len(args)):
-                args[i] = args[i].upper()
+        # get invoking member
+        msgAuthor = message.author
 
-            # get winner
-            try:
-                winIndex = args.index('WIN')
-                winner = args[winIndex + 1]
-                winnerFound = 1
-            except ValueError:
-                print('[ERROR] No winner specified')
-                await client.send_message(message.channel, 'Error: No winner specified')
-                winnerFound = 0
-
-            # get losers
-            try:
-                loseIndex = args.index('LOSE')
-                if loseIndex > winIndex:
-                    # losers were stated after the winner
-                    losers = args[loseIndex + 1 :]
+        # main command for adding win and lose information
+        # syntax: !choochoo win [winner] lose [loser1 loser2]
+        if command == 'choochoo':
+            # check command permissions
+            if checkPermission(msgAuthor, CMD_ROLES):
+                # check if the number of arguments is valid
+                if len(args) < 4:
+                    print('[ERROR] Invalid argument list')
+                    await client.send_message(message.channel, 'Error: Invalid number of arguments')
+                    winnerFound = 0
+                    losersFound = 0
                 else:
-                    # losers were stated before the winner
-                    losers = args[loseIndex + 1 : winIndex]
-                losersFound = 1
-            except ValueError:
-                print('[ERROR] No losers specified')
-                await client.send_message(message.channel, 'Error: No losers specified')
-                losersFound = 0
+                    # convert all arguments to UPPERCASE
+                    for i in range(0, len(args)):
+                        args[i] = args[i].upper()
 
-        # if we got a winner and losers then update stats
-        if winnerFound and losersFound:
-            # change case to capitalized
-            winner = winner.capitalize()
-            for i in range(0, len(losers)):
-                losers[i] = losers[i].capitalize()
+                    # get winner
+                    try:
+                        winIndex = args.index('WIN')
+                        winner = args[winIndex + 1]
+                        winnerFound = 1
+                    except ValueError:
+                        print('[ERROR] No winner specified')
+                        await client.send_message(message.channel, 'Error: No winner specified')
+                        winnerFound = 0
 
-            print('[INFO] Winner: %s' % winner)
-            print('[INFO] Losers: %s' % losers)
+                    # get losers
+                    try:
+                        loseIndex = args.index('LOSE')
+                        if loseIndex > winIndex:
+                            # losers were stated after the winner
+                            losers = args[loseIndex + 1 :]
+                        else:
+                            # losers were stated before the winner
+                            losers = args[loseIndex + 1 : winIndex]
+                        losersFound = 1
+                    except ValueError:
+                        print('[ERROR] No losers specified')
+                        await client.send_message(message.channel, 'Error: No losers specified')
+                        losersFound = 0
 
-            await incrementStats(message.channel, winner, losers)
-        await client.send_message(message.channel, '<:trains:324019973607653378>')
+                # if we got a winner and losers then update stats
+                if winnerFound and losersFound:
+                    # change case to capitalized
+                    winner = winner.capitalize()
+                    for i in range(0, len(losers)):
+                        losers[i] = losers[i].capitalize()
 
-    elif message.content.startswith('!addplayer'):
-        # get arguments
-        args = message.content.split()
+                    print('[INFO] Winner: %s' % winner)
+                    print('[INFO] Losers: %s' % losers)
 
-        # check for valid number of arguments
-        if len(args) < 2:
-            print('[ERROR] Invalid argument list')
-            await client.send_message(message.channel, 'Error: Invalid number of arguments')
-        else:
-            # get first name after command and add to database
-            playerName = args[1].capitalize()
-            await editPlayer(message.channel, playerName)
+                    await incrementStats(message.channel, winner, losers)
+                await client.send_message(message.channel, '<:trains:324019973607653378>')
+            else:
+                print('[ERROR] %s does not have permission to use this command' % msgAuthor.name)
+                await client.send_message(message.channel, 'Error: You do not have permission to use that command')
 
-    elif message.content.startswith('!removeplayer'):
-        # get arguments
-        args = message.content.split()
+        elif command == 'addplayer':
+            # check command permissions
+            if checkPermission(msgAuthor, CMD_ROLES):
+                # check for valid number of arguments
+                if len(args) < 1:
+                    print('[ERROR] Invalid argument list')
+                    await client.send_message(message.channel, 'Error: Invalid number of arguments')
+                else:
+                    # get name to add to database
+                    playerName = args[0].capitalize()
+                    await editPlayer(message.channel, playerName)
+            else:
+                print('[ERROR] %s does not have permission to use this command' % msgAuthor.name)
+                await client.send_message(message.channel, 'Error: You do not have permission to use that command')
 
-        # check for valid number of arguments
-        if len(args) < 2:
-            print('[ERROR] Invalid argument list')
-            await client.send_message(message.channel, 'Error: Invalid number of arguments')
-        else:
-            # get first name after command and add to database
-            playerName = args[1].capitalize()
-            await removePlayer(message.channel, playerName)
+        elif command == 'removeplayer':
+            # check command permissions
+            if checkPermission(msgAuthor, CMD_ROLES):
+                # check for valid number of arguments
+                if len(args) < 1:
+                    print('[ERROR] Invalid argument list')
+                    await client.send_message(message.channel, 'Error: Invalid number of arguments')
+                else:
+                    # get name to remove from database
+                    playerName = args[0].capitalize()
+                    await removePlayer(message.channel, playerName)
+            else:
+                print('[ERROR] %s does not have permission to use this command' % msgAuthor.name)
+                await client.send_message(message.channel, 'Error: You do not have permission to use that command')
 
-    elif message.content.startswith('!setplayer'):
-        # get arguments
-        args = message.content.split()
-        if len(args) < 7:
-            print('[ERROR] Invalid argument list')
-            await client.send_message(message.channel, 'Error: Invalid number of arguments')
-        else:
-            # convert all arguments to UPPERCASE
-            for i in range(0, len(args)):
-                args[i] = args[i].upper()
+        elif command == 'setplayer':
+            # check command permissions
+            if checkPermission(msgAuthor, CMD_ROLES):
+                if len(args) < 6:
+                    print('[ERROR] Invalid argument list')
+                    await client.send_message(message.channel, 'Error: Invalid number of arguments')
+                else:
+                    # convert all arguments to UPPERCASE
+                    for i in range(0, len(args)):
+                        args[i] = args[i].upper()
 
-            #get player name
-            try:
-                playerIndex = args.index('NAME')
-                playerName = args[playerIndex + 1]
-                playerName = playerName.capitalize()
-                playerFound = 1
-            except ValueError:
-                print('[ERROR] No player specified')
-                await client.send_message(message.channel, 'Error: No player specified')
-                playerFound = 0
+                    #get player name
+                    try:
+                        playerIndex = args.index('NAME')
+                        playerName = args[playerIndex + 1]
+                        playerName = playerName.capitalize()
+                        playerFound = 1
+                    except ValueError:
+                        print('[ERROR] No player specified')
+                        await client.send_message(message.channel, 'Error: No player specified')
+                        playerFound = 0
 
-            # get number of wins
-            try:
-                winIndex = args.index('WINS')
-                winCount = str(args[winIndex + 1])
-                winsFound = 1
-            except ValueError:
-                print('[ERROR] No win count specified')
-                await client.send_message(message.channel, 'Error: No win count specified')
-                winsFound = 0
+                    # get number of wins
+                    try:
+                        winIndex = args.index('WINS')
+                        winCount = str(args[winIndex + 1])
+                        winsFound = 1
+                    except ValueError:
+                        print('[ERROR] No win count specified')
+                        await client.send_message(message.channel, 'Error: No win count specified')
+                        winsFound = 0
 
-            # get number of losses
-            try:
-                loseIndex = args.index('LOSSES')
-                lossCount = str(args[loseIndex + 1])
-                lossFound = 1
-            except ValueError:
-                print('[ERROR] No loss count specified')
-                await client.send_message(message.channel, 'Error: No loss count specified')
-                lossFound = 0
+                    # get number of losses
+                    try:
+                        loseIndex = args.index('LOSSES')
+                        lossCount = str(args[loseIndex + 1])
+                        lossFound = 1
+                    except ValueError:
+                        print('[ERROR] No loss count specified')
+                        await client.send_message(message.channel, 'Error: No loss count specified')
+                        lossFound = 0
 
-            if playerFound and winsFound and lossFound:
-                await editPlayer(message.channel, playerName, editType='EDIT', wins=winCount, losses=lossCount)
+                    if playerFound and winsFound and lossFound:
+                        await editPlayer(message.channel, playerName, editType='EDIT', wins=winCount, losses=lossCount)
+            else:
+                print('[ERROR] %s does not have permission to use this command' % msgAuthor.name)
+                await client.send_message(message.channel, 'Error: You do not have permission to use that command')
 
-    elif message.content.startswith('!stats'):
-        # get arguments
-        args = message.content.split()
-        if len(args) > 1:
-            sortType = args[1].upper()
-            await dumpStats(message.channel, sortType=sortType)
-        else:
-            await dumpStats(message.channel)
+        elif command == 'stats':
+            # check permissions
+            if checkPermission(msgAuthor, CMD_ROLES) or checkPermission(msgAuthor, STAT_ROLES):
+                if len(args) > 0:
+                    sortType = args[0].upper()
+                    await dumpStats(message.channel, sortType=sortType)
+                else:
+                    await dumpStats(message.channel)
+            else:
+                print('[ERROR] %s does not have permission to use this command' % msgAuthor.name)
+                await client.send_message(message.channel, 'Error: You do not have permission to use that command')
 
-    elif message.content.startswith('!trainshelp'):
-        # send the help message
-        await client.send_message(message.channel, helpMsg)
-
+        elif command == 'trainshelp':
+            # send the help message
+            await client.send_message(message.channel, helpMsg)
 
 client.run('bot token')
 # https://discordapp.com/oauth2/authorize?client_id=bot_id&scope=bot&permissions=0
