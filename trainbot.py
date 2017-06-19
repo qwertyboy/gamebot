@@ -27,6 +27,7 @@ helpMsg = ('```diff\n'
            + statsUsage + '\n'
            '```')
 
+# create a client
 client = discord.Client()
 
 # desc: function to check permissions for a command
