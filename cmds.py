@@ -1,6 +1,18 @@
 import discord
-import asyncio
+from collections import Counter
 from db import readDB, writeDB
+
+INFO_DB_SUCCESS = 'Database updated successfully!'
+ERROR_DB_ERROR = 'Error: Unable to open database for writing'
+
+ERROR_PLAYER_NOT_FOUND = 'Error: \"%s\" not found in database. Check your spelling or use !addplayer first.'
+ERROR_WIN_IN_LOSE = 'Error: \"%s\" already specified as winner.'
+ERROR_DUP_LOSER = 'Error: \"%s\" duplicated in losers list'
+
+ERROR_IN_DB = 'Error: \"%s\" is already in the database'
+
+ERROR_SORT_ERROR = 'Error while sorting list. Make sure all players have at least one win or loss.\n'
+ERROR_INVALID_SORT = 'Error: Invalid sorting type. Displaying stats as stored.\n'
 
 # desc: function to search a list of lists for a name
 # args: name - the name to search the lists for
@@ -19,9 +31,17 @@ def getIndex(name, searchList):
 #       multiple - the increment to round to
 # retn: the rounded number
 def roundMultiple(num, multiple):
-    if num % multiple:
+    if num % multiple > 0:
         return num + (multiple - (num % multiple))
     return num
+
+
+# desc: function to find duplicate items in a list
+# args: inputList - a list to search for duplicates
+# retn: a list containing the duplicates
+def findDuplicates(inputList):
+    dupList = [k for k, v in Counter(inputList).items() if v > 1]
+    return dupList
 
 
 # desc: function to update the database
@@ -29,68 +49,55 @@ def roundMultiple(num, multiple):
 #       statsFile - the name of the database file
 #       winner - a string containing the winner's name
 #       losers - a list of strings containing the losers' names
-async def incrementStats(msgChannel, statsFile, winner, losers):
+# retn: a string indicating success or failure
+def incrementStats(msgChannel, statsFile, winner, losers):
     # read the database
     data = readDB(statsFile)
     rows = data.rows
 
     # check if the winner is actually in the database
-    winnerFound = 1
     if getIndex(winner, rows) < 0:
-        winnerFound = 0
         print('[ERROR] Winner \"%s\" not found in database' % winner)
-        await client.send_message(msgChannel, 'Error: \"%s\" not found in '
-                                  'database. Check your spelling or use '
-                                  '!addplayer first.' % winner)
+        return (ERROR_PLAYER_NOT_FOUND % winner)
 
     # check if losers are in database
-    losersFound = 1
     for loser in losers:
         # get loser index
         loserIndex = getIndex(loser, rows)
 
         # check against winner to see if the name was duplicated
         if loser == winner:
-            losersFound = 0
             print('[ERROR] Winner duplicated in losers field')
-            await client.send_message(msgChannel, 'Error: \"%s\" already specified'
-                                                   ' as winner.' % loser)
+            return (ERROR_WIN_IN_LOSE % loser)
         # check if loser was not found in database
-        elif loserIndex < 0:
-            losersFound = 0
+        if loserIndex < 0:
             print('[ERROR] Loser \"%s\" not found in database' % loser)
-            await client.send_message(msgChannel, 'Error: \"%s\" not found '
-                                      'in database. Check your spelling or use '
-                                      '!addplayer first.' % loser)
+            return (ERROR_PLAYER_NOT_FOUND % loser)
 
     # check for duplicate losers
-    if len(losers) != len(set(losers)):
-        losersFound = 0
+    dupList = findDuplicates(losers)
+    if len(dupList) > 0:
         print('[ERROR] Duplicate losers found')
-        await client.send_message(msgChannel, 'Error: Name duplicated in losers list')
+        return (ERROR_DUP_LOSER % dupList)
 
     # update stats if we found the winner and all losers
-    if winnerFound and losersFound:
-        # get index, get win count, increment and update
-        winnerIndex = getIndex(winner, rows)
-        winnerVal = int(rows[winnerIndex][1])
-        rows[winnerIndex][1] = str(winnerVal + 1)
+    # get index, get win count, increment and update
+    winnerIndex = getIndex(winner, rows)
+    winnerVal = int(rows[winnerIndex][1])
+    rows[winnerIndex][1] = str(winnerVal + 1)
 
-        # same as winner for each loser
-        for loser in losers:
-            loserIndex = getIndex(loser, rows)
-            loserVal = int(rows[loserIndex][2])
-            rows[loserIndex][2] = str(loserVal + 1)
+    # same as winner for each loser
+    for loser in losers:
+        loserIndex = getIndex(loser, rows)
+        loserVal = int(rows[loserIndex][2])
+        rows[loserIndex][2] = str(loserVal + 1)
 
-        # write the new data to the database file
-        if writeDB(statsFile, data.headers, rows):
-            await client.send_message(msgChannel, 'Database updated successfully!')
-        else:
-            print('[INFO] Database not updated')
-            await client.send_message(msgChannel, 'Error: Unable to open database for writing')
+    # write the new data to the database file
+    if writeDB(statsFile, data.headers, rows):
+        return INFO_DB_SUCCESS
     else:
         print('[INFO] Database not updated')
-        await client.send_message(msgChannel, 'Database not updated')
+        return ERROR_DB_ERROR
 
 
 # desc: function to add a player to the database or edit an existing player
@@ -100,7 +107,8 @@ async def incrementStats(msgChannel, statsFile, winner, losers):
 #       editType - either 'ADD' or 'EDIT' or 'REMOVE' - sets type of change happening
 #       wins - the number of wins to assign the player
 #       losses - the number of losses to assign the player
-async def editPlayer(msgChannel, statsFile, player, editType, wins='0', losses='0'):
+# retn: a string indicating success or failure
+def editPlayer(msgChannel, statsFile, player, editType, wins='0', losses='0'):
     # open up the database
     data = readDB(statsFile)
     rows = data.rows
@@ -110,10 +118,8 @@ async def editPlayer(msgChannel, statsFile, player, editType, wins='0', losses='
     if editType == 'ADD':
         if playerIndex > -1:
             print('[ERROR] \"%s\" already in database' % player)
-            await client.send_message(msgChannel, 'Error: \"%s\" is already in the '
-                                                  'database' % player)
             print('[INFO] Database not updated')
-            await client.send_message(msgChannel, 'Database not updated')
+            return (ERROR_IN_DB % player)
         else:
             # add player to list and resort
             rows.append([player, wins, losses])
@@ -122,45 +128,40 @@ async def editPlayer(msgChannel, statsFile, player, editType, wins='0', losses='
             # write the new data to the database file
             if writeDB(statsFile, data.headers, rows):
                 print('[INFO] \"%s\" added to database' % player)
-                await client.send_message(msgChannel, 'Database updated successfully!')
+                return INFO_DB_SUCCESS
             else:
                 print('[INFO] Database not updated')
-                await client.send_message(msgChannel, 'Error: Unable to open database for writing')
+                return ERROR_DB_ERROR
     elif editType == 'EDIT':
         if playerIndex < 0:
             print('[ERROR] \"%s\" not found in database' % player)
-            await client.send_message(msgChannel, 'Error: \"%s\" not found '
-                                      'in database. Check your spelling or use '
-                                      '!addplayer first.' % player)
             print('[INFO] Database not updated')
-            await client.send_message(msgChannel, 'Database not updated')
+            return (ERROR_PLAYER_NOT_FOUND % player)
         else:
             rows[playerIndex] = [rows[playerIndex][0], wins, losses]
 
             # write the new data to the database file
             if writeDB(statsFile, data.headers, rows):
                 print('[INFO] %s\'s data changed' % player)
-                await client.send_message(msgChannel, 'Database updated successfully!')
+                return INFO_DB_SUCCESS
             else:
                 print('[INFO] Database not updated')
-                await client.send_message(msgChannel, 'Error: Unable to open database for writing')
+                return ERROR_DB_ERROR
     elif editType == 'REMOVE':
         if playerIndex < 0:
             print('[ERROR] \"%s\" not found in database' % player)
-            await client.send_message(msgChannel, 'Error: \"%s\" was not found in '
-                                                  'the database' % player)
             print('[INFO] Database not updated')
-            await client.send_message(msgChannel, 'Database not updated')
+            return (ERROR_PLAYER_NOT_FOUND % player)
         else:
             # delete player from list
             del(rows[playerIndex])
             # write the new data to the database
             if writeDB(statsFile, data.headers, rows):
                 print('[INFO] \"%s\" removed from database' % player)
-                await client.send_message(msgChannel, 'Database updated successfully!')
+                return INFO_DB_SUCCESS
             else:
                 print('[INFO] Database not updated')
-                await client.send_message(msgChannel, 'Error: Unable to open database for writing')
+                return ERROR_DB_ERROR
 
 
 # desc: function to display the stats
@@ -170,21 +171,20 @@ async def editPlayer(msgChannel, statsFile, player, editType, wins='0', losses='
 #                  options are 'WINRATE', 'WINS', 'LOSSES', or 'NAME'.
 #                  will revert to 'NAME' if invalid
 #       player - NOT IMPLEMENTED - the player to display stats for
-async def dumpStats(msgChannel, statsFile, sortType='WINRATE', player='ALL'):
+def dumpStats(msgChannel, statsFile, sortType='WINRATE', player='ALL'):
     # read database
     data = readDB(statsFile)
     rows = data.rows
 
     print('[INFO] Sort type is %s' % sortType)
+    returnMsg = ''
     if sortType == 'WINRATE':
         # sort data by win rate
         try:
             rows.sort(key=lambda rate: int(rate[1]) / (int(rate[1]) + int(rate[2])), reverse=True)
         except ZeroDivisionError:
             print('[ERROR] Tried to divide by zero because of blank player data')
-            await client.send_message(msgChannel, 'Error while sorting list. Make '
-                                                  'sure all players have at least '
-                                                  'one win or loss.')
+            returnMsg = ERROR_SORT_ERROR
     elif sortType == 'WINS':
         # sort by number of wins and reverse so max is first
         rows.sort(key=lambda wins: int(wins[1]), reverse=True)
@@ -196,7 +196,7 @@ async def dumpStats(msgChannel, statsFile, sortType='WINRATE', player='ALL'):
         pass
     else:
         print('[ERROR] Invalid sorting type specified. Displaying stats as stored')
-        await client.send_message(msgChannel, 'Error: Invalid sorting type. Displaying stats as stored.')
+        returnMsg = ERROR_INVALID_SORT
 
     if player == 'ALL':
         # get max player length
@@ -230,4 +230,9 @@ async def dumpStats(msgChannel, statsFile, sortType='WINRATE', player='ALL'):
         header = ' |' + 'Name'.center(namePaddingLen) + '| Wins | Losses | Win Rate |\n'
         divider = ('-' * len(header)) + '\n'
         sendString = '```md\n' + header + divider + playerString + '```'
-        await client.send_message(msgChannel, sendString)
+
+        # return the constructed string
+        if len(returnMsg) > 0:
+            returnMsg = returnMsg + sendString
+            return returnMsg
+        return sendString

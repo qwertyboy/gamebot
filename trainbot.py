@@ -124,7 +124,10 @@ async def on_message(message):
                     print('[INFO] Winner: %s' % winner)
                     print('[INFO] Losers: %s' % losers)
 
-                    await incrementStats(message.channel, STATS_FILE, winner, losers)
+                    # try updating the stats
+                    status = incrementStats(message.channel, STATS_FILE, winner, losers)
+                    await client.send_message(message.channel, status)
+
                 await client.send_message(message.channel, '<:trains:324019973607653378>')
             else:
                 print('[ERROR] %s does not have permission to use this command' % msgAuthor.name)
@@ -140,7 +143,8 @@ async def on_message(message):
                 else:
                     # get name to add to database
                     playerName = args[0].capitalize()
-                    await editPlayer(message.channel, STATS_FILE, playerName, editType='ADD')
+                    status = editPlayer(message.channel, STATS_FILE, playerName, editType='ADD')
+                    await client.send_message(message.channel, status)
             else:
                 print('[ERROR] %s does not have permission to use this command' % msgAuthor.name)
                 await client.send_message(message.channel, 'Error: You do not have permission to use that command')
@@ -155,7 +159,8 @@ async def on_message(message):
                 else:
                     # get name to remove from database
                     playerName = args[0].capitalize()
-                    await editPlayer(message.channel, STATS_FILE, playerName, editType='REMOVE')
+                    status = editPlayer(message.channel, STATS_FILE, playerName, editType='REMOVE')
+                    await client.send_message(message.channel, status)
             else:
                 print('[ERROR] %s does not have permission to use this command' % msgAuthor.name)
                 await client.send_message(message.channel, 'Error: You do not have permission to use that command')
@@ -203,7 +208,8 @@ async def on_message(message):
                         lossFound = 0
 
                     if playerFound and winsFound and lossFound:
-                        await editPlayer(message.channel, STATS_FILE, playerName, editType='EDIT', wins=winCount, losses=lossCount)
+                        status = editPlayer(message.channel, STATS_FILE, playerName, editType='EDIT', wins=winCount, losses=lossCount)
+                        await client.send_message(message.channel, status)
             else:
                 print('[ERROR] %s does not have permission to use this command' % msgAuthor.name)
                 await client.send_message(message.channel, 'Error: You do not have permission to use that command')
@@ -213,9 +219,11 @@ async def on_message(message):
             if checkPermission(msgAuthor, CMD_ROLES) or checkPermission(msgAuthor, STAT_ROLES):
                 if len(args) > 0:
                     sortType = args[0].upper()
-                    await dumpStats(message.channel, STATS_FILE, sortType=sortType)
+                    statsMsg = dumpStats(message.channel, STATS_FILE, sortType=sortType)
+                    await client.send_message(message.channel, statsMsg)
                 else:
-                    await dumpStats(message.channel, STATS_FILE)
+                    statsMsg = dumpStats(message.channel, STATS_FILE)
+                    await client.send_message(message.channel, statsMsg)
             else:
                 print('[ERROR] %s does not have permission to use this command' % msgAuthor.name)
                 await client.send_message(message.channel, 'Error: You do not have permission to use that command')
