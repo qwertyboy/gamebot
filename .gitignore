@@ -100,5 +100,6 @@ ENV/
 # mypy
 .mypy_cache/
 
-# database files
+# database and config files
 *.csv
+*.ini
