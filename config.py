@@ -1,4 +1,5 @@
 import os
+import configparser
 from collections import namedtuple
 
 # desc: function to create a config file
@@ -10,29 +11,37 @@ def readConfig():
             configFile.write(configText)
 
     # otherwise read the file
-    ConfigTuple = namedtuple('ConfigTuple', ['OWNER_ID', 'BOT_TOKEN', 'CMD_PREFIX',
-                                             'STATS_FILE', 'DEFAULT_CMDS', 'DEFAULT_ROLE',
-                                             'ADMIN_CMDS', 'ADMIN_ROLE', 'UPDATE_DB_ROLE'])
     print('[INFO] Config file exists, parsing')
-    with open('config.ini', 'r') as configFile:
-        for line in configFile:
-            # split up line and get parameter
-            line = line.split('=')
-            param = line[0].strip()
+    # open the file and read the sections
+    config = configparser.ConfigParser()
+    config.read('config.ini')
 
-            if param == 'OWNER_ID':
-                # get owner id
-                ownerID = line[1].strip()
-            elif param == 'BOT_TOKEN':
-                # get bot token
-                botToken = line[1].strip()
-            elif param == 'CMD_PREFIX':
-                # get command prefix
-                cmdPrefix = line[1].strip()
-            elif param == 'STATS_FILE':
-                # get
-                statsFile = line[1].strip() + '.csv'
-                elif
+    # check if we have all required sections
+    reqSections = {'Owner', 'Credentials', 'Chat', 'Files', 'Default'}
+    sections = config.sections()
+    diff = reqSections.difference(sections)
+    if diff:
+        # return 0 if differences were found
+        print('[ERROR] The config file is missing the following sections: {}'.format(
+              ', '.join(['%s' % s for s in diff])) + '. Replace them or delete '
+              'the file to force it to be recreated.')
+        return 0
+
+    # get the required section info
+    ownerID = config.get('Owner', 'OWNER_ID', fallback = 'NONE')
+    botToken = config.get('Credentials', 'BOT_TOKEN', fallback = 'NONE')
+    cmdPrefix = config.get('Chat', 'CMD_PREFIX', fallback = 'NONE')
+    listenID = config.get('Chat', 'LISTEN_CHANNEL', fallback = 'NONE')
+    statsFileName = config.get('Files', 'STATS_FILE', fallback = 'stats')
+    defaultCmds = config.get('Default', 'CMDS').split()
+
+    # process the additional permission groups
+    Permissions = namedtuple('Permissions', ['name', 'cmds', 'roles', 'users'])
+    permGroups = set(sections).difference(reqSections)
+    for group in permGroups:
+        pass
+
+
 
 configText = '''################################################################################
 # This is the config file for trainbot. Various parameters need to be          #
@@ -41,34 +50,38 @@ configText = '''################################################################
 # starting with # are viewed as comments and will not be parsed.               #
 ################################################################################
 
-[Owner]
+
 ################################################################################
 # OWNER_ID is the ID of the bot's owner. They will have full access to all     #
 # commands. If this is not you, be careful who you grant it to                 #
 ################################################################################
+[Owner]
 OWNER_ID = your_id_here
 
-[Credentials]
+
 ################################################################################
 # BOT_TOKEN is the token to be used to login as a bot account. This is         #
 # available when creating a Bot User on the Developer site here:               #
 # https://discordapp.com/developers/applications/me                            #
 ################################################################################
+[Credentials]
 BOT_TOKEN = bot_token_here
 
-[Chat]
+
 ################################################################################
 # CMD_PREFIX is the character used to determine what will trigger the bot. If  #
 # you only want the bot to listen and send messages in a specific text         #
 # channel, uncomment LISTEN_CHANNEL and provide the chanel's ID.               #
 ################################################################################
+[Chat]
 CMD_PREFIX = !
 # LISTEN_CHANNEL =
 
-[Files]
+
 ################################################################################
 # STATS_FILE is the name of the file used for storing the stats.               #
 ################################################################################
+[Files]
 STATS_FILE = stats
 
 
