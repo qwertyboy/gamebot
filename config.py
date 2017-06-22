@@ -1,46 +1,53 @@
 import os
 import configparser
-from collections import namedtuple
 
-# desc: function to create a config file
-def readConfig():
-    if not os.path.isfile('config.ini'):
-        # if the file doesnt exist, create it with some default values
-        print('[INFO] Config file missing, creating')
-        with open('config.ini', 'w') as configFile:
-            configFile.write(configText)
+class Config:
+    def __init__(self):
+        if not os.path.isfile('config.ini'):
+            # if the file doesnt exist, create it with some default values
+            print('[INFO] Config file missing, creating')
+            with open('config.ini', 'w') as configFile:
+                configFile.write(configText)
 
-    # otherwise read the file
-    print('[INFO] Config file exists, parsing')
-    # open the file and read the sections
-    config = configparser.ConfigParser()
-    config.read('config.ini')
+        # otherwise read the file
+        print('[INFO] Config file exists, parsing')
+        # open the file and read the sections
+        config = configparser.ConfigParser()
+        config.read('config.ini')
 
-    # check if we have all required sections
-    reqSections = {'Owner', 'Credentials', 'Chat', 'Files', 'Default'}
-    sections = config.sections()
-    diff = reqSections.difference(sections)
-    if diff:
-        # return 0 if differences were found
-        print('[ERROR] The config file is missing the following sections: {}'.format(
-              ', '.join(['%s' % s for s in diff])) + '. Replace them or delete '
-              'the file to force it to be recreated.')
-        return 0
+        # check if we have all required sections
+        reqSections = {'Owner', 'Credentials', 'Chat', 'Files', 'Default'}
+        sections = config.sections()
+        diff = reqSections.difference(sections)
+        if diff:
+            # return 0 if differences were found
+            print('[ERROR] The config file is missing the following sections: {}'.format(
+                  ', '.join(['%s' % s for s in diff])) + '. Replace them or delete '
+                  'the file to force it to be recreated.')
 
-    # get the required section info
-    ownerID = config.get('Owner', 'OWNER_ID', fallback = 'NONE')
-    botToken = config.get('Credentials', 'BOT_TOKEN', fallback = 'NONE')
-    cmdPrefix = config.get('Chat', 'CMD_PREFIX', fallback = 'NONE')
-    listenID = config.get('Chat', 'LISTEN_CHANNEL', fallback = 'NONE')
-    statsFileName = config.get('Files', 'STATS_FILE', fallback = 'stats')
-    defaultCmds = config.get('Default', 'CMDS').split()
+        self.ownerID = config.get('Owner', 'OWNER_ID', fallback='NONE')
+        self.botToken = config.get('Credentials', 'BOT_TOKEN', fallback='NONE')
+        self.cmdPrefix = config.get('Chat', 'CMD_PREFIX', fallback='NONE')
+        self.listenID = config.get('Chat', 'LISTEN_CHANNEL', fallback='NONE')
+        self.statsFileName = config.get('Files', 'STATS_FILE', fallback='stats')
 
-    # process the additional permission groups
-    Permissions = namedtuple('Permissions', ['name', 'cmds', 'roles', 'users'])
-    permGroups = set(sections).difference(reqSections)
-    for group in permGroups:
-        pass
+        # get the default commands and create a set of groups starting with default
+        self.groups = set()
+        self.groups.add(PermissionGroup('Default', config['Default']))
 
+        # loop through the rest of the groups
+        permGroups = set(sections).difference(reqSections)
+        for group in permGroups:
+            # add
+            self.groups.add(PermissionGroup(group, config[group]))
+
+
+class PermissionGroup:
+    def __init__(self, name, groupData):
+        self.name = name
+        self.cmds = set(groupData.get('CMDS', fallback='NONE').upper().split())
+        self.roles = set(groupData.get('ROLES', fallback='NONE').split())
+        self.users = set(groupData.get('USERS', fallback='NONE').split())
 
 
 configText = '''################################################################################
