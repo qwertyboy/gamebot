@@ -31,7 +31,7 @@ def getIndex(name, searchList):
 #       multiple - the increment to round to
 # retn: the rounded number
 def roundMultiple(num, multiple):
-    if num % multiple > 0:
+    if num % multiple:
         return num + (multiple - (num % multiple))
     return num
 
@@ -171,6 +171,7 @@ def editPlayer(msgChannel, statsFile, player, editType, wins='0', losses='0'):
 #                  options are 'WINRATE', 'WINS', 'LOSSES', or 'NAME'.
 #                  will revert to 'NAME' if invalid
 #       player - NOT IMPLEMENTED - the player to display stats for
+# retn: a string formatted with the database stats
 def dumpStats(msgChannel, statsFile, sortType='WINRATE', player='ALL'):
     # read database
     data = readDB(statsFile)
@@ -181,16 +182,16 @@ def dumpStats(msgChannel, statsFile, sortType='WINRATE', player='ALL'):
     if sortType == 'WINRATE':
         # sort data by win rate
         try:
-            rows.sort(key=lambda rate: int(rate[1]) / (int(rate[1]) + int(rate[2])), reverse=True)
+            rows.sort(key=lambda rate: float(rate[1]) / (float(rate[1]) + float(rate[2])), reverse=True)
         except ZeroDivisionError:
             print('[ERROR] Tried to divide by zero because of blank player data')
             returnMsg = ERROR_SORT_ERROR
     elif sortType == 'WINS':
         # sort by number of wins and reverse so max is first
-        rows.sort(key=lambda wins: int(wins[1]), reverse=True)
+        rows.sort(key=lambda wins: float(wins[1]), reverse=True)
     elif sortType == 'LOSSES':
         # sort by number of losses and reverse so max is first
-        rows.sort(key=lambda losses: int(losses[2]), reverse=True)
+        rows.sort(key=lambda losses: float(losses[2]), reverse=True)
     elif sortType == 'NAME':
         # database is stored sorted by name so dont do anything
         pass
@@ -214,12 +215,12 @@ def dumpStats(msgChannel, statsFile, sortType='WINRATE', player='ALL'):
             winCount = player[1].rjust(7)
             loseCount = player[2].rjust(9)
             # calculate win rate
-            if int(winCount) == 0:
+            if float(winCount) <= 0:
                 winRate = '0'
-            elif int(loseCount) == 0:
+            elif float(loseCount) <= 0:
                 winRate = ' 100'
             else:
-                winRate = str((int(winCount) / (int(winCount) + int(loseCount))) * 100)
+                winRate = str((float(winCount) / (float(winCount) + float(loseCount))) * 100)
 
             # truncate win rate and create string with player info
             winRate = winRate[0:4].rjust(9)

@@ -21,27 +21,58 @@ class Config:
         diff = reqSections.difference(sections)
         if diff:
             # return 0 if differences were found
-            print('[ERROR] The config file is missing the following sections: {}'.format(
-                  ', '.join(['%s' % s for s in diff])) + '. Replace them or delete '
-                  'the file to force it to be recreated.')
+            raise RuntimeError('The config file is missing the following '
+                               'sections: {}'.format(', '.join(['%s' % s for s
+                               in diff])) + '. Replace them or delete the file '
+                               'to force it to be recreated.')
 
+        # get the config information
         self.ownerID = config.get('Owner', 'OWNER_ID', fallback='NONE')
         self.botToken = config.get('Credentials', 'BOT_TOKEN', fallback='NONE')
         self.cmdPrefix = config.get('Chat', 'CMD_PREFIX', fallback='NONE')
         self.listenID = config.get('Chat', 'LISTEN_CHANNEL', fallback='NONE')
-        self.statsFileName = config.get('Files', 'STATS_FILE', fallback='stats')
+        self.statsFileName = config.get('Files', 'STATS_FILE', fallback='stats') + '.csv'
 
-        # get the default commands and create a set of groups starting with default
+        # get the default commands and create a default group
         self.groups = set()
-        self.groups.add(PermissionGroup('Default', config['Default']))
+        self.defaultGroup = PermissionGroup('Default', config['Default'])
 
         # loop through the rest of the groups
         permGroups = set(sections).difference(reqSections)
         for group in permGroups:
-            # add
+            # add an instance of the permissions class for each group defined
             self.groups.add(PermissionGroup(group, config[group]))
 
 
+    # desc: function to check a user's permissions
+    # args: user - a discord user or member object
+    #       command - the commands to check permission for
+    # retn: 1 if the user can use the command, 0 otherwise
+    def checkPermission(self, user, command):
+        # immediately grant owner permission
+        if user.id == self.ownerID:
+            return 1
+
+        # check for user override
+        for group in self.groups:
+            if (user.id in group.users) and (command in group.cmds):
+                return 1
+
+        # check for role permissions. needs to be separate loop to avoid
+        # returning before user override
+        for group in self.groups:
+            for role in user.roles:
+                if (role.id in group.roles) and (command in group.cmds):
+                    return 1
+
+        # check default group
+        if command in self.defaultGroup.cmds:
+            return 1
+
+        # else return 0 if not found anywhere
+        return 0
+
+# groupData is a configparser section
 class PermissionGroup:
     def __init__(self, name, groupData):
         self.name = name
