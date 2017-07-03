@@ -1,6 +1,6 @@
 import discord
 import asyncio
-from cmds import incrementStats, editPlayer, dumpStats
+from cmds import incrementStats, editPlayer, dumpStats, helpMessage
 from config import Config
 
 choochooUsage = '!choochoo win [winner] lose [loser1 loser2 etc]'
@@ -8,16 +8,7 @@ addplayerUsage = '!addplayer [player]'
 removeplayerUsage = '!removeplayer [player]'
 setplayerUsage = '!setplayer name [name] wins [win_count] losses [loss_count]'
 statsUsage = '!stats <winrate | wins | losses>'
-helpMsg = ('```diff\n'
-           'These are the available commands. Arguments displayed in [square brackets]\n'
-           'are required. Arguments displayed in <angle brackets> are optional.\n'
-           '----------------------------------------------------------------------------\n'
-           + choochooUsage + '\n'
-           + addplayerUsage + '\n'
-           + removeplayerUsage + '\n'
-           + setplayerUsage + '\n'
-           + statsUsage + '\n'
-           '```')
+
 
 # create a client
 client = discord.Client()
@@ -60,6 +51,10 @@ async def on_message(message):
             command = args[0][1:].upper()
             # remove the command from the args
             del(args[0])
+            # convert all arguments to UPPERCASE
+            for i in range(0, len(args)):
+                args[i] = args[i].upper()
+
             print('\n[INFO] Command: %s' % command)
             print('[INFO] Arguments: %s' % args)
 
@@ -79,10 +74,6 @@ async def on_message(message):
                         winnerFound = 0
                         losersFound = 0
                     else:
-                        # convert all arguments to UPPERCASE
-                        for i in range(0, len(args)):
-                            args[i] = args[i].upper()
-
                         # get winner
                         try:
                             winIndex = args.index('WIN')
@@ -151,10 +142,6 @@ async def on_message(message):
                         print('[ERROR] Invalid argument list')
                         await client.send_message(message.channel, 'Error: Invalid number of arguments')
                     else:
-                        # convert all arguments to UPPERCASE
-                        for i in range(0, len(args)):
-                            args[i] = args[i].upper()
-
                         #get player name
                         try:
                             playerIndex = args.index('NAME')
@@ -191,17 +178,24 @@ async def on_message(message):
                             await client.send_message(message.channel, status)
 
                 elif command == 'STATS':
+                    # we got a sort type other than default
                     if len(args) > 0:
-                        sortType = args[0].upper()
+                        sortType = args[0]
                         statsMsg = dumpStats(message.channel, config.statsFileName, sortType=sortType)
                         await client.send_message(message.channel, statsMsg)
                     else:
+                        # default sorting type
                         statsMsg = dumpStats(message.channel, config.statsFileName)
                         await client.send_message(message.channel, statsMsg)
 
                 elif command == 'TRAINSHELP':
+                    # we got a command to get help for
+                    if len(args) > 0:
+                        helpCmd = args[0]
+                        helpMsg = helpMessage(helpCmd)
+                        await client.send_message(message.channel, helpMsg)
                     # send the help message
-                    await client.send_message(message.channel, helpMsg)
+                    await client.send_message(message.channel, helpMessage())
 
             # failed permission check
             else:
