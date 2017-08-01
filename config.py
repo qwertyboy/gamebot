@@ -117,7 +117,7 @@ CMD_PREFIX = !
 
 
 ################################################################################
-# STATS_FILE is the name of the file used for storing the stats.               #
+# STATS_FILE is the name of the file postfix used for storing the stats.       #
 ################################################################################
 [Files]
 STATS_FILE = stats

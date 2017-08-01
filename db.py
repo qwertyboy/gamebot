@@ -1,6 +1,24 @@
 import csv
 from collections import namedtuple
 
+# desc: function to create a new database file
+# args: fileName - the name of the file to create
+# retn: 1 on success or 0 on failure
+def createDB(fileName):
+    try:
+        # open file in create mode
+        with open(fileName, 'w', newline='') as stats:
+            # write some default headers to the file
+            defaultHeaders = ['Name', 'Wins', 'Losses']
+            writer = csv.writer(stats, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(defaultHeaders)
+            print('[INFO] Database created successfully')
+            return 1
+    except PermissionError:
+        print('[ERROR] Unable to open database file for writing')
+        return 0
+
+
 # desc: function to read database
 # args: fileName - name of the file to open
 # retn: a named tuple containing the header and rows from the file
