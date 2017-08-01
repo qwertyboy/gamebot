@@ -236,6 +236,7 @@ async def on_message(message):
                         print('[ERROR] Invalid argument list')
                         await client.send_message(message.channel, 'Error: Invalid number of arguments')
                     else:
+                        gameFileName = args[0].lower() + '_' + config.statsFileName
                         if createDB(gameFileName):
                             print('[INFO] New database created')
                             await client.send_message(message.channel, 'New database created!')

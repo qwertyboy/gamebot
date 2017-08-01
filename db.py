@@ -21,20 +21,24 @@ def createDB(fileName):
 
 # desc: function to read database
 # args: fileName - name of the file to open
-# retn: a named tuple containing the header and rows from the file
+# retn: a named tuple containing the header and rows from the file or 0 on failure
 def readDB(fileName):
-    # open file and get rows
-    with open(fileName, newline='') as stats:
-        reader = csv.reader(stats, delimiter=',', quotechar='"')
-        # get column headers
-        headers = next(reader)
-        # get rows
-        rows = list(reader)
-        print('[INFO] Database read successful')
+    try:
+        # open file and get rows
+        with open(fileName, newline='') as stats:
+            reader = csv.reader(stats, delimiter=',', quotechar='"')
+            # get column headers
+            headers = next(reader)
+            # get rows
+            rows = list(reader)
+            print('[INFO] Database read successful')
 
-    Data = namedtuple('Data', ['headers', 'rows'])
-    r = Data(headers, rows)
-    return r
+        Data = namedtuple('Data', ['headers', 'rows'])
+        r = Data(headers, rows)
+        return r
+    except FileNotFoundError:
+        print('[ERROR]: Database for game does not exist')
+        return 0
 
 
 # desc: function to wrte the database

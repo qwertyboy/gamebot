@@ -8,6 +8,7 @@ help = Help()
 
 INFO_DB_SUCCESS = 'Database updated successfully!'
 ERROR_DB_ERROR = 'Error: Unable to open database for writing'
+ERROR_DB_NOT_FOUND = 'Error: Database for specified game does not exist. Check your spelling or use !addgame first.'
 
 ERROR_PLAYER_NOT_FOUND = 'Error: \"%s\" not found in database. Check your spelling or use !addplayer first.'
 ERROR_WIN_IN_LOSE = 'Error: \"%s\" already specified as winner.'
@@ -59,6 +60,9 @@ def findDuplicates(inputList):
 def incrementStats(msgChannel, statsFile, winner, losers):
     # read the database
     data = readDB(statsFile)
+    # return an error if database not found
+    if data == 0:
+        return ERROR_DB_NOT_FOUND
     rows = data.rows
 
     # check if the winner is actually in the database
@@ -117,6 +121,9 @@ def incrementStats(msgChannel, statsFile, winner, losers):
 def editPlayer(msgChannel, statsFile, player, editType, wins='0', losses='0'):
     # open up the database
     data = readDB(statsFile)
+    # return an error if database not found
+    if data == 0:
+        return ERROR_DB_NOT_FOUND
     rows = data.rows
     playerIndex = getIndex(player, rows)
 
@@ -181,6 +188,9 @@ def editPlayer(msgChannel, statsFile, player, editType, wins='0', losses='0'):
 def dumpStats(msgChannel, statsFile, sortType='WINRATE', player='ALL'):
     # read database
     data = readDB(statsFile)
+    # return an error if database not found
+    if data == 0:
+        return ERROR_DB_NOT_FOUND
     rows = data.rows
 
     print('[INFO] Sort type is %s' % sortType)
