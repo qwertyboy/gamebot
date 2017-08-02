@@ -3,6 +3,7 @@ import asyncio
 from cmds import incrementStats, editPlayer, dumpStats, helpMessage
 from config import Config
 from db import createDB
+from cmdparser import ParseMessage
 
 choochooUsage = '!choochoo win [winner] lose [loser1 loser2 etc]'
 addplayerUsage = '!addplayer [player]'
@@ -43,99 +44,50 @@ async def on_message(message):
     # check if we should process messages for this channel
     msgChannel = message.channel.id
     if msgChannel == config.listenID or config.listenID == 'NONE':
-
         # check if this is a command for this bot
         if message.content.startswith(config.cmdPrefix):
-            # get the arguments in the message
-            args = message.content.split()
-            # get the command after the command prefix
-            command = args[0][1:].upper()
-            # remove the command from the args
-            del(args[0])
-            # convert all arguments to UPPERCASE
-            for i in range(0, len(args)):
-                args[i] = args[i].upper()
+            # parse the command
+            cmd = ParseMessage(message)
+            gameFileName = cmd.game + '_' + config.statsFileName
 
-            # get game name
-            try:
-                gameIndex = args.index('GAME')
-                game = args[gameIndex + 1]
-                # construct the name of the file for the game's database
-                gameFileName = game.lower() + '_' + config.statsFileName
-                # remove game from args
-                del(args[gameIndex : gameIndex + 2])
-                gameFound = 1
-            except ValueError:
-                print('[INFO] No game specified')
-                game = 'NONE'
-                gameFound = 0
-
-            print('\n[INFO] Command: %s' % command)
-            print('[INFO] Game: %s' % game)
-            print('[INFO] Arguments: %s' % args)
+            print('\n[INFO] Command: %s' % cmd.command)
+            print('[INFO] Arguments: %s' % cmd.args)
 
             # get invoking member
             msgAuthor = message.author
             # check permission for command
-            permission = config.checkPermission(msgAuthor, command)
+            permission = config.checkPermission(msgAuthor, cmd.command)
 
             if permission:
                 # main command for adding win and lose information
-                # syntax: !choochoo win [winner] lose [loser1 loser2]
-                if command == 'CHOOCHOO':
-                    if gameFound:
-                        # check if the number of arguments is valid
-                        if len(args) < 4:
-                            print('[ERROR] Invalid argument list')
-                            await client.send_message(message.channel, 'Error: Invalid number of arguments')
-                            winnerFound = 0
-                            losersFound = 0
-                            gameFound = 0
-                        else:
-                            # get winner
-                            try:
-                                winIndex = args.index('WIN')
-                                winner = args[winIndex + 1]
-                                winnerFound = 1
-                            except ValueError:
-                                print('[ERROR] No winner specified')
-                                await client.send_message(message.channel, 'Error: No winner specified')
-                                winnerFound = 0
-
-                            # get losers
-                            try:
-                                loseIndex = args.index('LOSE')
-                                if loseIndex > winIndex:
-                                    # losers were stated after the winner
-                                    losers = args[loseIndex + 1 :]
-                                else:
-                                    # losers were stated before the winner
-                                    losers = args[loseIndex + 1 : winIndex]
-                                losersFound = 1
-                            except ValueError:
-                                print('[ERROR] No losers specified')
-                                await client.send_message(message.channel, 'Error: No losers specified')
-                                losersFound = 0
-
-                        # if we got a winner and losers then update stats
-                        if winnerFound and losersFound:
-                            # change case to capitalized
-                            winner = winner.capitalize()
-                            for i in range(0, len(losers)):
-                                losers[i] = losers[i].capitalize()
-
-                            print('[INFO] Winner: %s' % winner)
-                            print('[INFO] Losers: %s' % losers)
-
-                            # try updating the stats
-                            status = incrementStats(message.channel, gameFileName, winner, losers)
-                            await client.send_message(message.channel, status)
-
-                        await client.send_message(message.channel, '<:trains:324019973607653378>')
+                # syntax: !updategame game='game' winner='winner' losers='losers'
+                if cmd.command == 'UPDATEGAME':
+                    # make sure the required arguments were provided
+                    if cmd.game == 'NONE' or cmd.winner == 'NONE' or cmd.losers == 'NONE':
+                        # error message if game not specified
+                        if cmd.game == 'NONE':
+                            print('[ERROR] No game specified')
+                            await client.send_message(message.channel, 'Error: No game specified.')
+                        # error message if winner not specified
+                        if cmd.winner == 'NONE':
+                            print('[ERROR] No winner specified')
+                            await client.send_message(message.channel, 'Error: No winner specified.')
+                        #error message if losers not specified
+                        if cmd.losers == 'NONE':
+                            print('[ERROR] No losers specified')
+                            await client.send_message(message.channel, 'Error: No losers specified.')
                     else:
-                        await client.send_message(message.channel, 'Error: No game specified')
+                        # print some info to terminal
+                        print('[INFO] Game: %s' % cmd.game)
+                        print('[INFO] Winner: %s' % cmd.winner)
+                        print('[INFO] Losers: %s' % cmd.losers)
 
-                elif command == 'ADDPLAYER':
+                        # try updating the stats
+                        status = incrementStats(message.channel, gameFileName, cmd.winner, cmd.losers)
+                        await client.send_message(message.channel, status)
+                        await client.send_message(message.channel, '<:trains:324019973607653378>')
+
+                elif cmd.command == 'ADDPLAYER':
                     if gameFound:
                         # check for valid number of arguments
                         if len(args) < 1:
@@ -149,7 +101,7 @@ async def on_message(message):
                     else:
                         await client.send_message(message.channel, 'Error: No game specified')
 
-                elif command == 'REMOVEPLAYER':
+                elif cmd.command == 'REMOVEPLAYER':
                     if gameFound:
                         # check for valid number of arguments
                         if len(args) < 1:
@@ -163,7 +115,7 @@ async def on_message(message):
                     else:
                         await client.send_message(message.channel, 'Error: No game specified')
 
-                elif command == 'SETPLAYER':
+                elif cmd.command == 'SETPLAYER':
                     if gameFound:
                         if len(args) < 6:
                             print('[ERROR] Invalid argument list')
@@ -206,7 +158,7 @@ async def on_message(message):
                     else:
                         await client.send_message(message.channel, 'Error: No game specified')
 
-                elif command == 'STATS':
+                elif cmd.command == 'STATS':
                     if gameFound:
                         # we got a sort type other than default
                         if len(args) > 0:
@@ -220,7 +172,7 @@ async def on_message(message):
                     else:
                         await client.send_message(message.channel, 'Error: No game specified')
 
-                elif command == 'TRAINSHELP':
+                elif cmd.command == 'TRAINSHELP':
                     # we got a command to get help for
                     if len(args) > 0:
                         helpCmd = args[0]
@@ -230,7 +182,7 @@ async def on_message(message):
                         # send the default help message
                         await client.send_message(message.channel, helpMessage())
 
-                elif command == 'ADDGAME':
+                elif cmd.command == 'ADDGAME':
                     # add a new game database
                     if len(args) < 1:
                         print('[ERROR] Invalid argument list')
