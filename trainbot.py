@@ -61,7 +61,7 @@ async def on_message(message):
             if permission:
                 # main command for adding win and lose information
                 # syntax: !updategame game='game' winner='winner' losers='losers'
-                if cmd.command == 'UPDATEGAME':
+                if cmd.command == 'UPDATESTATS':
                     # make sure the required arguments were provided
                     if cmd.game == 'NONE' or cmd.winner == 'NONE' or cmd.losers == 'NONE':
                         # error message if game not specified
@@ -87,90 +87,96 @@ async def on_message(message):
                         await client.send_message(message.channel, status)
                         await client.send_message(message.channel, '<:trains:324019973607653378>')
 
+                # command for adding a player to a database
+                # syntax: !addplayer game='game' name='name'
                 elif cmd.command == 'ADDPLAYER':
-                    if gameFound:
-                        # check for valid number of arguments
-                        if len(args) < 1:
-                            print('[ERROR] Invalid argument list')
-                            await client.send_message(message.channel, 'Error: Invalid number of arguments')
-                        else:
-                            # get name to add to database
-                            playerName = args[0].capitalize()
-                            status = editPlayer(message.channel, gameFileName, playerName, editType='ADD')
-                            await client.send_message(message.channel, status)
+                    # make sure the required arguments were provided
+                    if cmd.game == 'NONE' or cmd.name == 'NONE':
+                        # error message if game not specified
+                        if cmd.game == 'NONE':
+                            print('[ERROR] No game specified')
+                            await client.send_message(message.channel, 'Error: No game specified.')
+                        # error message if player not specified
+                        if cmd.name == 'NONE':
+                            print('[ERROR] No player specified')
+                            await client.send_message(message.channel, 'Error: No player specified.')
                     else:
-                        await client.send_message(message.channel, 'Error: No game specified')
+                        # print some info to terminal
+                        print('[INFO] Game: %s' % cmd.game)
+                        print('[INFO] Player: %s' % cmd.name)
 
+                        # add the player
+                        status = editPlayer(message.channel, gameFileName, cmd.name, editType='ADD')
+                        await client.send_message(message.channel, status)
+
+                # command for removing a player from a database
+                # syntax: !removeplayer game='game' name='name'
                 elif cmd.command == 'REMOVEPLAYER':
-                    if gameFound:
-                        # check for valid number of arguments
-                        if len(args) < 1:
-                            print('[ERROR] Invalid argument list')
-                            await client.send_message(message.channel, 'Error: Invalid number of arguments')
-                        else:
-                            # get name to remove from database
-                            playerName = args[0].capitalize()
-                            status = editPlayer(message.channel, gameFileName, playerName, editType='REMOVE')
-                            await client.send_message(message.channel, status)
+                    # make sure the required arguments were provided
+                    if cmd.game == 'NONE' or cmd.name == 'NONE':
+                        # error message if game not specified
+                        if cmd.game == 'NONE':
+                            print('[ERROR] No game specified')
+                            await client.send_message(message.channel, 'Error: No game specified.')
+                        # error message if player not specified
+                        if cmd.name == 'NONE':
+                            print('[ERROR] No player specified')
+                            await client.send_message(message.channel, 'Error: No player specified.')
                     else:
-                        await client.send_message(message.channel, 'Error: No game specified')
+                        # print some info to terminal
+                        print('[INFO] Game: %s' % cmd.game)
+                        print('[INFO] Player: %s' % cmd.name)
 
+                        # remove the player
+                        status = editPlayer(message.channel, gameFileName, cmd.name, editType='REMOVE')
+                        await client.send_message(message.channel, status)
+
+                # command for setting a players win and loss stats
+                # syntax: !setplayer game='game' name='name' wins='wins' losses='losses'
                 elif cmd.command == 'SETPLAYER':
-                    if gameFound:
-                        if len(args) < 6:
-                            print('[ERROR] Invalid argument list')
-                            await client.send_message(message.channel, 'Error: Invalid number of arguments')
-                        else:
-                            #get player name
-                            try:
-                                playerIndex = args.index('NAME')
-                                playerName = args[playerIndex + 1]
-                                playerName = playerName.capitalize()
-                                playerFound = 1
-                            except ValueError:
-                                print('[ERROR] No player specified')
-                                await client.send_message(message.channel, 'Error: No player specified')
-                                playerFound = 0
-
-                            # get number of wins
-                            try:
-                                winIndex = args.index('WINS')
-                                winCount = str(args[winIndex + 1])
-                                winsFound = 1
-                            except ValueError:
-                                print('[ERROR] No win count specified')
-                                await client.send_message(message.channel, 'Error: No win count specified')
-                                winsFound = 0
-
-                            # get number of losses
-                            try:
-                                loseIndex = args.index('LOSSES')
-                                lossCount = str(args[loseIndex + 1])
-                                lossFound = 1
-                            except ValueError:
-                                print('[ERROR] No loss count specified')
-                                await client.send_message(message.channel, 'Error: No loss count specified')
-                                lossFound = 0
-
-                            if playerFound and winsFound and lossFound:
-                                status = editPlayer(message.channel, gameFileName, playerName, editType='EDIT', wins=winCount, losses=lossCount)
-                                await client.send_message(message.channel, status)
+                    # make sure the required arguments were provided
+                    if cmd.game == 'NONE' or cmd.name == 'NONE' or cmd.wins == 'NONE' or cmd.losses == 'NONE':
+                        # error message if game not specified
+                        if cmd.game == 'NONE':
+                            print('[ERROR] No game specified')
+                            await client.send_message(message.channel, 'Error: No game specified.')
+                        # error message if player not specified
+                        if cmd.name == 'NONE':
+                            print('[ERROR] No player specified')
+                            await client.send_message(message.channel, 'Error: No player specified.')
+                        # error message if wins not specified
+                        if cmd.wins == 'NONE':
+                            print('[ERROR] No wins specified')
+                            await client.send_message(message.channel, 'Error: No wins specified.')
+                        # error message if losses not specified
+                        if cmd.losses == 'NONE':
+                            print('[ERROR] No losses specified')
+                            await client.send_message(message.channel, 'Error: No losses specified.')
                     else:
-                        await client.send_message(message.channel, 'Error: No game specified')
+                        # print some info to terminal
+                        print('[INFO] Game: %s' % cmd.game)
+                        print('[INFO] Player: %s' % cmd.name)
 
+                        # update the players stats
+                        status = editPlayer(message.channel, gameFileName, cmd.name, editType='EDIT', wins=cmd.wins, losses=cmd.losses)
+                        await client.send_message(message.channel, status)
+
+                # command for displaying game stats
+                # syntax: !stats game='game' (optional) sort='sort'
                 elif cmd.command == 'STATS':
-                    if gameFound:
-                        # we got a sort type other than default
-                        if len(args) > 0:
-                            sortType = args[0]
-                            statsMsg = dumpStats(message.channel, gameFileName, sortType=sortType)
-                            await client.send_message(message.channel, statsMsg)
-                        else:
-                            # default sorting type
-                            statsMsg = dumpStats(message.channel, gameFileName)
-                            await client.send_message(message.channel, statsMsg)
+                    # make sure the required arguments were provided
+                    if cmd.game == 'NONE':
+                        # error message if game not specified
+                        if cmd.game == 'NONE':
+                            print('[ERROR] No game specified')
+                            await client.send_message(message.channel, 'Error: No game specified.')
                     else:
-                        await client.send_message(message.channel, 'Error: No game specified')
+                        # print some info to terminal
+                        print('[INFO] Game: %s' % cmd.game)
+                        print('[INFO] Sorting Type: %s' % cmd.sort)
+
+                        statsMsg = dumpStats(message.channel, gameFileName, sortType=cmd.sort)
+                        await client.send_message(message.channel, statsMsg)
 
                 elif cmd.command == 'TRAINSHELP':
                     # we got a command to get help for

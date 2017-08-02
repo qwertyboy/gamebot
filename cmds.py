@@ -195,7 +195,7 @@ def dumpStats(msgChannel, statsFile, sortType='WINRATE', player='ALL'):
 
     print('[INFO] Sort type is %s' % sortType)
     returnMsg = ''
-    if sortType == 'WINRATE':
+    if sortType == 'WINRATE' or sortType == 'NONE':
         # sort data by win rate
         try:
             rows.sort(key=lambda rate: float(rate[1]) / (float(rate[1]) + float(rate[2])), reverse=True)
@@ -227,7 +227,7 @@ def dumpStats(msgChannel, statsFile, sortType='WINRATE', player='ALL'):
         # adjust start spacing if player length is odd or even to align with pipe
         startSpace = 4 if maxPlayerLen % 2 else 3
         for player in rows:
-            playerName = player[0].rjust(maxPlayerLen + startSpace)
+            playerName = player[0].capitalize().rjust(maxPlayerLen + startSpace)
             winCount = player[1].rjust(7)
             loseCount = player[2].rjust(9)
             # calculate win rate
