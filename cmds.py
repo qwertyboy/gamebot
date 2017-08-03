@@ -1,10 +1,7 @@
 import discord
 from collections import Counter
 from db import readDB, writeDB
-from help import Help
 
-# get the help messages
-help = Help()
 
 INFO_DB_SUCCESS = 'Database updated successfully!'
 ERROR_DB_ERROR = 'Error: Unable to open database for writing'
@@ -19,7 +16,6 @@ ERROR_IN_DB = 'Error: \"%s\" is already in the database'
 ERROR_SORT_ERROR = 'Error while sorting list. Make sure all players have at least one win or loss.\n'
 ERROR_INVALID_SORT = 'Error: Invalid sorting type. Displaying stats as stored.\n'
 
-ERROR_CMD_NOT_FOUND = 'Error: \"%s\" is not a valid command.'
 
 # desc: function to search a list of lists for a name
 # args: name - the name to search the lists for
@@ -253,16 +249,3 @@ def dumpStats(msgChannel, statsFile, sortType='WINRATE', player='ALL'):
             returnMsg = returnMsg + sendString
             return returnMsg
         return sendString
-
-
-# desc: a function to display a help message
-# args: the command to show help for, defaults to listing them
-# retn: a string formatted with the help information
-def helpMessage(cmd='LIST'):
-    if cmd == 'LIST':
-        return help.helpMsg
-    else:
-        try:
-            return help.cmdHelp[cmd]
-        except KeyError:
-            return ERROR_CMD_NOT_FOUND % cmd

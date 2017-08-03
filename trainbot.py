@@ -1,9 +1,10 @@
 import discord
 import asyncio
-from cmds import incrementStats, editPlayer, dumpStats, helpMessage
+from cmds import incrementStats, editPlayer, dumpStats
 from config import Config
 from db import createDB
 from cmdparser import ParseMessage
+from help import Help
 
 choochooUsage = '!choochoo win [winner] lose [loser1 loser2 etc]'
 addplayerUsage = '!addplayer [player]'
@@ -12,6 +13,8 @@ setplayerUsage = '!setplayer name [name] wins [win_count] losses [loss_count]'
 statsUsage = '!stats <winrate | wins | losses>'
 
 
+# initialize help messages
+help = Help()
 # create a client
 client = discord.Client()
 # get the config information
@@ -178,23 +181,28 @@ async def on_message(message):
                         statsMsg = dumpStats(message.channel, gameFileName, sortType=cmd.sort)
                         await client.send_message(message.channel, statsMsg)
 
-                elif cmd.command == 'TRAINSHELP':
-                    # we got a command to get help for
-                    if len(args) > 0:
-                        helpCmd = args[0]
-                        helpMsg = helpMessage(helpCmd)
-                        await client.send_message(message.channel, helpMsg)
+                elif cmd.command == 'GAMEHELP':
+                    if cmd.nonKeyed == 'NONE':
+                        # return default help message
+                        helpMsg = help.helpMessage('LIST')
                     else:
-                        # send the default help message
-                        await client.send_message(message.channel, helpMessage())
+                        # return a help message for the specified command
+                        helpMsg = help.helpMessage(cmd.nonKeyed)
+                    # send message
+                    await client.send_message(message.channel, helpMsg)
 
+                # command for creating a new game database
+                # syntax: !addgame game
                 elif cmd.command == 'ADDGAME':
-                    # add a new game database
-                    if len(args) < 1:
-                        print('[ERROR] Invalid argument list')
-                        await client.send_message(message.channel, 'Error: Invalid number of arguments')
+                    # make sure the required arguments were provided
+                    if cmd.nonKeyed == 'NONE':
+                        print('[ERROR] No game specified')
+                        await client.send_message(message.channel, 'Error: No game specified.')
                     else:
-                        gameFileName = args[0].lower() + '_' + config.statsFileName
+                        # print some info to terminal
+                        print('[INFO] Game: %s' % cmd.game)
+
+                        gameFileName = cmd.nonKeyed + '_' + config.statsFileName
                         if createDB(gameFileName):
                             print('[INFO] New database created')
                             await client.send_message(message.channel, 'New database created!')

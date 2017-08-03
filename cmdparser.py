@@ -16,6 +16,7 @@ class ParseMessage:
         self.losses = 'NONE'
         self.winner = 'NONE'
         self.losers = 'NONE'
+        self.nonKeyed = 'NONE'
 
         # iterate through each argument
         for arg in self.args:
@@ -41,3 +42,5 @@ class ParseMessage:
                 self.winner = value
             elif key == 'LOSERS':
                 self.losers = value.split(',')
+            elif key == 'NONE':
+                self.nonKeyed = value
