@@ -49,6 +49,12 @@ class Config:
     #       command - the commands to check permission for
     # retn: 1 if the user can use the command, 0 otherwise
     def checkPermission(self, user, command):
+        # list of commands to check against to for this bot
+        cmds = ['UPDATESTATS', 'ADDPLAYER', 'REMOVEPLAYER', 'SETPLAYER', 'STATS', 'ADDGAME', 'GAMEHELP']
+        # return 1 if not found in list
+        if command not in cmds:
+            return 1
+
         # immediately grant owner permission
         if user.id == self.ownerID:
             return 1

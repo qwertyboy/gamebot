@@ -6,12 +6,6 @@ from db import createDB
 from cmdparser import ParseMessage
 from help import Help
 
-choochooUsage = '!choochoo win [winner] lose [loser1 loser2 etc]'
-addplayerUsage = '!addplayer [player]'
-removeplayerUsage = '!removeplayer [player]'
-setplayerUsage = '!setplayer name [name] wins [win_count] losses [loss_count]'
-statsUsage = '!stats <winrate | wins | losses>'
-
 
 # initialize help messages
 help = Help()
@@ -49,6 +43,8 @@ async def on_message(message):
     if msgChannel == config.listenID or config.listenID == 'NONE':
         # check if this is a command for this bot
         if message.content.startswith(config.cmdPrefix):
+            # send a typing message because why not
+            await client.send_typing(message.channel)
             # parse the command
             cmd = ParseMessage(message)
             gameFileName = cmd.game + '_' + config.statsFileName
