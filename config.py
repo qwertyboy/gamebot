@@ -27,7 +27,7 @@ class Config:
                                'to force it to be recreated.')
 
         # get the config information
-        self.ownerID = config.get('Owner', 'OWNER_ID', fallback='NONE')
+        self.ownerID = config.getint('Owner', 'OWNER_ID', fallback='NONE')
         self.botToken = config.get('Credentials', 'BOT_TOKEN', fallback='NONE')
         self.cmdPrefix = config.get('Chat', 'CMD_PREFIX', fallback='NONE')
         self.listenID = config.get('Chat', 'LISTEN_CHANNEL', fallback='NONE')
@@ -83,8 +83,22 @@ class PermissionGroup:
     def __init__(self, name, groupData):
         self.name = name
         self.cmds = set(groupData.get('CMDS', fallback='NONE').upper().split())
-        self.roles = set(groupData.get('ROLES', fallback='NONE').split())
-        self.users = set(groupData.get('USERS', fallback='NONE').split())
+        self.roles = set()
+        self.users = set()
+        
+        roles = set(groupData.get('ROLES', fallback='NONE').split())
+        for role in roles:
+            try:
+                self.roles.add(int(role))
+            except ValueError:
+                print('[WARN] Role \"%s\" in section \"%s\" is not a valid role ID' % (role, groupData.name))
+        
+        users = set(groupData.get('USERS', fallback='NONE').split())
+        for user in users:
+            try:
+                self.users.add(int(user))
+            except ValueError:
+                print('[WARN] User \"%s\" in section \"%s\" is not a valid user ID' % (user, groupData.name))
 
 
 configText = '''################################################################################

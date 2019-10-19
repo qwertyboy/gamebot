@@ -5,6 +5,7 @@ from config import Config
 from db import createDB
 from cmdparser import ParseMessage
 from help import Help
+import random
 
 
 # initialize help messages
@@ -24,7 +25,7 @@ for group in config.groups:
 async def on_ready():
     print('Logged in as \"%s\" with ID %s' % (client.user.name, client.user.id))
     print('Connected servers:')
-    for server in client.servers:
+    for server in client.guilds:
         print('\t%s (%s)' % (server.name, server.id))
 
         #print('\tRoles:')
@@ -37,14 +38,26 @@ async def on_ready():
     print('---------------------------------------------')
 
 @client.event
-async def on_message(message):
+async def on_message(message):    
+    if message.author.id == '241726136629854208':
+        if 'lost' in message.content.lower() and 'game' in message.content.lower():
+            await message.channel.send('fuck you')
+    
+    if message.author.id != client.user.id:
+        if 'corn' in message.content.lower():
+            if random.randrange(0, 2) == 1:
+                await message.channel.send(u'\U0001F33D\U0001F33D\U0001F33D IT\'S RAINING CORN! \U0001F33D\U0001F33D\U0001F33D');
+        if message.content == 'same':
+            await message.channel.send('same')
+    
+    if random.randrange(0, 15) == 5:
+        await message.add_reaction(u'\U0001F33D')
+        
     # check if we should process messages for this channel
     msgChannel = message.channel.id
     if msgChannel == config.listenID or config.listenID == 'NONE':
         # check if this is a command for this bot
         if message.content.startswith(config.cmdPrefix):
-            # send a typing message because why not
-            await client.send_typing(message.channel)
             # parse the command
             cmd = ParseMessage(message)
             gameFileName = cmd.game + '_' + config.statsFileName
@@ -61,20 +74,23 @@ async def on_message(message):
                 # main command for adding win and lose information
                 # syntax: !updategame game='game' winner='winner' losers='losers'
                 if cmd.command == 'UPDATESTATS':
+                    # send a typing message because why not
+                    await message.channel.trigger_typing()
+                    
                     # make sure the required arguments were provided
                     if cmd.game == 'NONE' or cmd.winner == 'NONE' or cmd.losers == 'NONE':
                         # error message if game not specified
                         if cmd.game == 'NONE':
                             print('[ERROR] No game specified')
-                            await client.send_message(message.channel, 'Error: No game specified.')
+                            await message.channel.send('Error: No game specified.')
                         # error message if winner not specified
                         if cmd.winner == 'NONE':
                             print('[ERROR] No winner specified')
-                            await client.send_message(message.channel, 'Error: No winner specified.')
+                            await message.channel.send('Error: No winner specified.')
                         #error message if losers not specified
                         if cmd.losers == 'NONE':
                             print('[ERROR] No losers specified')
-                            await client.send_message(message.channel, 'Error: No losers specified.')
+                            await message.channel.send('Error: No losers specified.')
                     else:
                         # print some info to terminal
                         print('[INFO] Game: %s' % cmd.game)
@@ -83,22 +99,25 @@ async def on_message(message):
 
                         # try updating the stats
                         status = incrementStats(message.channel, gameFileName, cmd.winner, cmd.losers)
-                        await client.send_message(message.channel, status)
-                        await client.send_message(message.channel, '<:trains:324019973607653378>')
+                        await message.channel.send(status)
+                        await message.channel.send('<:trains:324019973607653378>')
 
                 # command for adding a player to a database
                 # syntax: !addplayer game='game' name='name'
                 elif cmd.command == 'ADDPLAYER':
+                    # send a typing message because why not
+                    await message.channel.trigger_typing()
+                    
                     # make sure the required arguments were provided
                     if cmd.game == 'NONE' or cmd.name == 'NONE':
                         # error message if game not specified
                         if cmd.game == 'NONE':
                             print('[ERROR] No game specified')
-                            await client.send_message(message.channel, 'Error: No game specified.')
+                            await message.channel.send('Error: No game specified.')
                         # error message if player not specified
                         if cmd.name == 'NONE':
                             print('[ERROR] No player specified')
-                            await client.send_message(message.channel, 'Error: No player specified.')
+                            await message.channel.send('Error: No player specified.')
                     else:
                         # print some info to terminal
                         print('[INFO] Game: %s' % cmd.game)
@@ -106,21 +125,24 @@ async def on_message(message):
 
                         # add the player
                         status = editPlayer(message.channel, gameFileName, cmd.name, editType='ADD')
-                        await client.send_message(message.channel, status)
+                        await message.channel.send(status)
 
                 # command for removing a player from a database
                 # syntax: !removeplayer game='game' name='name'
                 elif cmd.command == 'REMOVEPLAYER':
+                    # send a typing message because why not
+                    await message.channel.trigger_typing()
+                    
                     # make sure the required arguments were provided
                     if cmd.game == 'NONE' or cmd.name == 'NONE':
                         # error message if game not specified
                         if cmd.game == 'NONE':
                             print('[ERROR] No game specified')
-                            await client.send_message(message.channel, 'Error: No game specified.')
+                            await message.channel.send('Error: No game specified.')
                         # error message if player not specified
                         if cmd.name == 'NONE':
                             print('[ERROR] No player specified')
-                            await client.send_message(message.channel, 'Error: No player specified.')
+                            await message.channel.send('Error: No player specified.')
                     else:
                         # print some info to terminal
                         print('[INFO] Game: %s' % cmd.game)
@@ -128,29 +150,32 @@ async def on_message(message):
 
                         # remove the player
                         status = editPlayer(message.channel, gameFileName, cmd.name, editType='REMOVE')
-                        await client.send_message(message.channel, status)
+                        await message.channel.send(status)
 
                 # command for setting a players win and loss stats
                 # syntax: !setplayer game='game' name='name' wins='wins' losses='losses'
                 elif cmd.command == 'SETPLAYER':
+                    # send a typing message because why not
+                    await message.channel.trigger_typing()
+                    
                     # make sure the required arguments were provided
                     if cmd.game == 'NONE' or cmd.name == 'NONE' or cmd.wins == 'NONE' or cmd.losses == 'NONE':
                         # error message if game not specified
                         if cmd.game == 'NONE':
                             print('[ERROR] No game specified')
-                            await client.send_message(message.channel, 'Error: No game specified.')
+                            await message.channel.send('Error: No game specified.')
                         # error message if player not specified
                         if cmd.name == 'NONE':
                             print('[ERROR] No player specified')
-                            await client.send_message(message.channel, 'Error: No player specified.')
+                            await message.channel.send('Error: No player specified.')
                         # error message if wins not specified
                         if cmd.wins == 'NONE':
                             print('[ERROR] No wins specified')
-                            await client.send_message(message.channel, 'Error: No wins specified.')
+                            await message.channel.send('Error: No wins specified.')
                         # error message if losses not specified
                         if cmd.losses == 'NONE':
                             print('[ERROR] No losses specified')
-                            await client.send_message(message.channel, 'Error: No losses specified.')
+                            await message.channel.send('Error: No losses specified.')
                     else:
                         # print some info to terminal
                         print('[INFO] Game: %s' % cmd.game)
@@ -158,26 +183,32 @@ async def on_message(message):
 
                         # update the players stats
                         status = editPlayer(message.channel, gameFileName, cmd.name, editType='EDIT', wins=cmd.wins, losses=cmd.losses)
-                        await client.send_message(message.channel, status)
+                        await message.channel.send(status)
 
                 # command for displaying game stats
                 # syntax: !stats game='game' (optional) sort='sort'
                 elif cmd.command == 'STATS':
+                    # send a typing message because why not
+                    await message.channel.trigger_typing()
+                    
                     # make sure the required arguments were provided
                     if cmd.game == 'NONE':
                         # error message if game not specified
                         if cmd.game == 'NONE':
                             print('[ERROR] No game specified')
-                            await client.send_message(message.channel, 'Error: No game specified.')
+                            await message.channel.send('Error: No game specified.')
                     else:
                         # print some info to terminal
                         print('[INFO] Game: %s' % cmd.game)
                         print('[INFO] Sorting Type: %s' % cmd.sort)
 
                         statsMsg = dumpStats(message.channel, gameFileName, sortType=cmd.sort)
-                        await client.send_message(message.channel, statsMsg)
+                        await message.channel.send(statsMsg)
 
                 elif cmd.command == 'GAMEHELP':
+                    # send a typing message because why not
+                    await message.channel.trigger_typing()
+                    
                     if cmd.nonKeyed == 'NONE':
                         # return default help message
                         helpMsg = help.helpMessage('LIST')
@@ -185,15 +216,18 @@ async def on_message(message):
                         # return a help message for the specified command
                         helpMsg = help.helpMessage(cmd.nonKeyed)
                     # send message
-                    await client.send_message(message.channel, helpMsg)
+                    await message.channel.send(helpMsg)
 
                 # command for creating a new game database
                 # syntax: !addgame game
                 elif cmd.command == 'ADDGAME':
+                    # send a typing message because why not
+                    await message.channel.trigger_typing()
+                    
                     # make sure the required arguments were provided
                     if cmd.nonKeyed == 'NONE':
                         print('[ERROR] No game specified')
-                        await client.send_message(message.channel, 'Error: No game specified.')
+                        await message.channel.send('Error: No game specified.')
                     else:
                         # print some info to terminal
                         print('[INFO] Game: %s' % cmd.game)
@@ -201,15 +235,20 @@ async def on_message(message):
                         gameFileName = cmd.nonKeyed + '_' + config.statsFileName
                         if createDB(gameFileName):
                             print('[INFO] New database created')
-                            await client.send_message(message.channel, 'New database created!')
+                            await message.channel.send('New database created!')
                         else:
-                            await client.send_message(message.channel, 'Error: Problem creating database')
+                            await message.channel.send('Error: Problem creating database')
+                elif cmd.command == 'NATE':
+                    # send a typing message because why not
+                    await message.channel.trigger_typing()
+                    
+                    await message.channel.send('no u')
 
             # failed permission check or game check
             else:
                 if not permission:
                     print('[ERROR] %s does not have permission to use this command' % msgAuthor.name)
-                    await client.send_message(message.channel, 'Error: You do not have permission to use that command')
+                    await message.channel.send('Error: You do not have permission to use that command')
 
 client.run(config.botToken)
 # https://discordapp.com/oauth2/authorize?client_id=bot_id&scope=bot&permissions=0
